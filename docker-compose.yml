@@ -1,0 +1,47 @@
+version: '3'
+
+networks:
+    backend:
+
+services:
+    db:
+        image: mysql:8
+        ports:
+          - 3306:3306
+        volumes:
+          - ./mysql:/var/lib/mysql
+        env_file:
+          - .env
+        networks:
+          - backend
+
+    fpm:
+        build:
+            context: ./php
+            dockerfile: Dockerfile
+        ports:
+          - 9000:9000
+        volumes:
+          - ./src:/usr/share/nginx/src:ro
+        networks:
+          - backend
+        depends_on:
+          - db
+        links:
+          - db:mysql
+
+    nginx:
+        image: nginx:stable-alpine
+        ports:
+          - 8000:80
+        volumes:
+          - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+          - ./nginx/conf.d:/etc/nginx/conf.d:ro
+          - ./nginx/html:/usr/share/nginx/html:ro
+        networks:
+          - backend
+        depends_on:
+          - fpm
+          - db
+        links:
+          - fpm:php-fpm
